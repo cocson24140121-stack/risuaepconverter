@@ -4,115 +4,621 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>risuaepconverter</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
     body {
-      background-color: #0b0f17;
-      color: #e2e8f0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      background: url('/static/bg.jpg') no-repeat center center fixed;
+      background-size: cover;
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 20px;
+      color: #e2e8f0;
+      position: relative;
+      overflow-x: hidden;
+      padding: 24px 16px;
     }
-    .card {
-      background-color: #131b2e;
-      border: 1px solid #243250;
-      border-radius: 14px;
-      padding: 36px 30px;
+
+    /* Dark ambient vignette overlay */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(15, 23, 42, 0.35) 0%, rgba(10, 15, 30, 0.75) 100%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* --- Collapsible Floating Sidebar --- */
+    .sidebar {
+      position: fixed;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 64px;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 18px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+      z-index: 100;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+    }
+
+    .sidebar.open {
+      width: 210px;
+      align-items: flex-start;
+      padding: 20px 16px;
+    }
+
+    .toggle-btn {
       width: 100%;
-      max-width: 460px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
-    h1 {
-      margin-top: 0;
-      font-size: 1.5rem;
-      color: #60a5fa;
-      text-align: center;
-      letter-spacing: -0.5px;
-    }
-    p.subtitle {
+      background: transparent;
+      border: none;
       color: #94a3b8;
-      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      padding: 6px 0;
+      transition: color 0.2s ease;
+    }
+
+    .sidebar.open .toggle-btn {
+      justify-content: space-between;
+    }
+
+    .toggle-btn:hover {
+      color: #ffffff;
+    }
+
+    .sidebar-divider {
+      width: 100%;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+      margin: 4px 0;
+    }
+
+    .social-links {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      gap: 10px;
+    }
+
+    .social-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-decoration: none;
+      color: #cbd5e1;
+      padding: 10px 12px;
+      border-radius: 12px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .social-item i {
+      font-size: 1.25rem;
+      min-width: 24px;
       text-align: center;
-      margin-top: -6px;
+    }
+
+    .social-item span {
+      font-size: 0.92rem;
+      font-weight: 500;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .sidebar.open .social-item span {
+      opacity: 1;
+    }
+
+    .social-item:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #60a5fa;
+      transform: translateX(3px);
+    }
+
+    /* --- Glass Converter Card --- */
+    .converter-card {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 480px;
+      background: rgba(18, 26, 44, 0.62);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 24px;
+      padding: 32px 28px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .header {
+      text-align: center;
       margin-bottom: 24px;
     }
-    label {
-      font-size: 0.85rem;
+
+    .header h1 {
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      letter-spacing: -0.5px;
+    }
+
+    .header h1 i {
+      color: #60a5fa;
+      font-size: 1.5rem;
+    }
+
+    .header p {
+      color: #94a3b8;
+      font-size: 0.88rem;
+      margin-top: 6px;
+    }
+
+    /* --- Interactive Drag & Drop Area --- */
+    .drop-zone {
+      border: 2px dashed rgba(255, 255, 255, 0.22);
+      border-radius: 18px;
+      padding: 36px 20px;
+      text-align: center;
+      cursor: pointer;
+      background: rgba(15, 23, 42, 0.35);
+      transition: all 0.25s ease;
+      position: relative;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.08);
+      transform: scale(1.01);
+    }
+
+    .drop-zone.has-file {
+      border: 2px solid #22c55e;
+      background: rgba(34, 197, 94, 0.08);
+    }
+
+    .drop-icon {
+      font-size: 2.8rem;
+      color: #60a5fa;
+      margin-bottom: 12px;
+      transition: transform 0.2s;
+    }
+
+    .drop-zone.has-file .drop-icon {
+      color: #22c55e;
+    }
+
+    .drop-text {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #f1f5f9;
+    }
+
+    .file-meta {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+
+    /* Detected Badge */
+    .detected-bar {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 10px 14px;
+      border-radius: 12px;
+      margin-top: 14px;
+      font-size: 0.84rem;
+      color: #93c5fd;
+    }
+
+    /* Tab Switcher */
+    .mode-switch {
+      display: flex;
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.45);
+      padding: 5px;
+      border-radius: 12px;
+      margin: 16px 0 18px 0;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 9px 0;
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 0.86rem;
+      font-weight: 600;
+      border-radius: 9px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .mode-btn.active {
+      background: rgba(37, 99, 235, 0.8);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    /* Select Dropdown */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.82rem;
       font-weight: 600;
       color: #cbd5e1;
       margin-bottom: 8px;
-      display: block;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-    input[type="file"], select {
+
+    .custom-select {
       width: 100%;
-      padding: 12px;
-      margin-bottom: 20px;
-      border-radius: 8px;
-      background-color: #0b0f17;
-      border: 1px solid #243250;
-      color: #e2e8f0;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 12px;
+      color: #ffffff;
+      font-size: 0.92rem;
       outline: none;
-      font-size: 0.9rem;
-    }
-    input[type="file"]::file-selector-button {
-      background-color: #1e293b;
-      color: #e2e8f0;
-      border: 1px solid #334155;
-      padding: 6px 12px;
-      border-radius: 6px;
       cursor: pointer;
-      margin-right: 10px;
+      transition: border-color 0.2s;
     }
-    button {
-      width: 100%;
+
+    .custom-select:focus {
+      border-color: #38bdf8;
+    }
+
+    .custom-select option {
+      background: #0f172a;
+      color: #ffffff;
+    }
+
+    /* Warning Callout */
+    .warning-box {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 0.78rem;
+      color: #fcd34d;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    /* Action Buttons */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-primary {
+      flex: 2;
       padding: 14px;
       background: linear-gradient(135deg, #2563eb, #1d4ed8);
       border: none;
-      border-radius: 8px;
+      border-radius: 12px;
       color: #ffffff;
-      font-weight: bold;
       font-size: 0.95rem;
+      font-weight: 700;
       cursor: pointer;
-      transition: opacity 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 0.2s, transform 0.15s;
     }
-    button:hover {
-      opacity: 0.9;
+
+    .btn-primary:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
     }
-    .note {
-      font-size: 0.75rem;
-      color: #64748b;
-      text-align: center;
-      margin-top: 20px;
-      line-height: 1.4;
+
+    .btn-secondary {
+      flex: 1;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 12px;
+      color: #cbd5e1;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.14);
+      color: #ffffff;
+    }
+
+    /* Instructions Footer Box */
+    .instructions-card {
+      margin-top: 22px;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-size: 0.78rem;
+      color: #94a3b8;
+    }
+
+    .instructions-card strong {
+      display: block;
+      color: #e2e8f0;
+      margin-bottom: 6px;
+      font-size: 0.82rem;
+    }
+
+    .instructions-card ul {
+      padding-left: 18px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 640px) {
+      .sidebar {
+        bottom: 12px;
+        top: auto;
+        transform: none;
+        left: 50%;
+        transform: translateX(-50%);
+        flex-direction: row;
+        width: auto;
+        height: 52px;
+        border-radius: 26px;
+        padding: 6px 14px;
+      }
+      .sidebar.open {
+        width: auto;
+        height: 52px;
+      }
+      .sidebar-divider, .toggle-btn, .social-item span {
+        display: none;
+      }
+      .social-links {
+        flex-direction: row;
+      }
+      .converter-card {
+        padding: 24px 18px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>risuaepconverter</h1>
-    <p class="subtitle">Convert & Downgrade After Effects Projects (.aep)</p>
-    <form method="POST" enctype="multipart/form-data">
-      <label>Choose .aep Project File</label>
-      <input type="file" name="file" accept=".aep" required>
 
-      <label>Target AE Version</label>
-      <select name="target_version">
-        <option value="24.x">AE 2024 (24.x)</option>
-        <option value="23.x">AE 2023 (23.x)</option>
-        <option value="22.x">AE 2022 (22.x)</option>
-        <option value="18.x">AE 2021 (18.x)</option>
-        <option value="17.x">AE 2020 (17.x)</option>
-        <option value="16.x">AE CC 2019 (16.x)</option>
-        <option value="15.x">AE CC 2018 (15.x)</option>
-      </select>
+  <!-- Collapsible Floating Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <button class="toggle-btn" id="toggleSidebar" title="Toggle Links">
+      <i class="fa-solid fa-bars" id="toggleIcon"></i>
+      <i class="fa-solid fa-chevron-left" id="collapseIcon" style="display: none;"></i>
+    </button>
+    <div class="sidebar-divider"></div>
+    <div class="social-links">
+      <a href="https://sociabuzz.com/risu4p" target="_blank" class="social-item">
+        <i class="fa-solid fa-globe"></i>
+        <span>Website</span>
+      </a>
+      <a href="https://tiktok.com/@risu.4p" target="_blank" class="social-item">
+        <i class="fa-brands fa-tiktok"></i>
+        <span>TikTok</span>
+      </a>
+      <a href="https://youtube.com/@risu2846" target="_blank" class="social-item">
+        <i class="fa-brands fa-youtube"></i>
+        <span>YouTube</span>
+      </a>
+      <a href="https://instagram.com/risu.4p" target="_blank" class="social-item">
+        <i class="fa-brands fa-instagram"></i>
+        <span>Instagram</span>
+      </a>
+    </div>
+  </aside>
 
-      <button type="submit">Convert & Download</button>
+  <!-- Converter Card -->
+  <main class="converter-card">
+    <div class="header">
+      <h1>risuaepconverter <i class="fa-solid fa-cloud-arrow-down"></i></h1>
+      <p>Convert & Downgrade After Effects Files (.aep)</p>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" id="converterForm">
+      <!-- Hidden Native File Input -->
+      <input type="file" name="file" id="fileInput" accept=".aep" style="display: none;" required>
+
+      <!-- Drag & Drop Zone -->
+      <div class="drop-zone" id="dropZone">
+        <i class="fa-solid fa-circle-arrow-up drop-icon" id="statusIcon"></i>
+        <div class="drop-text" id="dropPrompt">Drop your .aep file here or browse</div>
+        <div class="file-meta" id="fileMeta">Supports any standard Adobe After Effects project</div>
+      </div>
+
+      <!-- Detected Version Banner -->
+      <div class="detected-bar" id="detectedBar">
+        <i class="fa-solid fa-circle-info"></i>
+        <span id="detectedText">Detected: AE 18.x (2021)</span>
+      </div>
+
+      <!-- Downgrade / Upgrade Tabs -->
+      <div class="mode-switch">
+        <button type="button" class="mode-btn active" id="downgradeBtn">
+          <i class="fa-solid fa-arrow-down"></i> Downgrade
+        </button>
+        <button type="button" class="mode-btn" id="upgradeBtn">
+          <i class="fa-solid fa-arrow-up"></i> Upgrade
+        </button>
+      </div>
+
+      <!-- Target Version Select -->
+      <div class="form-group">
+        <label for="target_version">Target Version</label>
+        <select name="target_version" id="target_version" class="custom-select">
+          <option value="24.x">AE 2024 (24.x)</option>
+          <option value="23.x">AE 2023 (23.x)</option>
+          <option value="22.x">AE 2022 (22.x)</option>
+          <option value="18.x">AE 2021 (18.x)</option>
+          <option value="17.x">AE 2020 (17.x)</option>
+          <option value="16.x">AE CC 2019 (16.x)</option>
+          <option value="15.x" selected>AE 15.x (CC 2018)</option>
+        </select>
+      </div>
+
+      <div class="warning-box">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>Experimental compatibility with older AE versions is not guaranteed.</span>
+      </div>
+
+      <!-- Submit & Reset Buttons -->
+      <div class="btn-row">
+        <button type="submit" class="btn-primary">
+          <i class="fa-solid fa-arrows-rotate"></i> Convert File
+        </button>
+        <button type="button" class="btn-secondary" id="resetBtn">
+          <i class="fa-solid fa-rotate-left"></i> Start Over
+        </button>
+      </div>
     </form>
-    <div class="note">Files are processed in-memory and never saved to the server.</div>
-  </div>
+
+    <div class="instructions-card">
+      <strong>Instructions</strong>
+      <ul>
+        <li>Drop your After Effects project (.aep) file above</li>
+        <li>Choose Downgrade or Upgrade, then select a target version</li>
+        <li>Supported range: CC 2018 – AE 2024</li>
+      </ul>
+    </div>
+  </main>
+
+  <script>
+    // Sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.getElementById('toggleSidebar');
+    const toggleIcon = document.getElementById('toggleIcon');
+    const collapseIcon = document.getElementById('collapseIcon');
+
+    toggleBtn.addEventListener('click', () => {
+      const isOpen = sidebar.classList.toggle('open');
+      toggleIcon.style.display = isOpen ? 'none' : 'block';
+      collapseIcon.style.display = isOpen ? 'block' : 'none';
+    });
+
+    // File Drag and Drop Handlers
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const dropPrompt = document.getElementById('dropPrompt');
+    const fileMeta = document.getElementById('fileMeta');
+    const statusIcon = document.getElementById('statusIcon');
+    const detectedBar = document.getElementById('detectedBar');
+    const detectedText = document.getElementById('detectedText');
+    const resetBtn = document.getElementById('resetBtn');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    ['dragenter', 'dragover'].forEach(name => {
+      dropZone.addEventListener(name, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(name => {
+      dropZone.addEventListener(name, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+      });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        fileInput.files = e.dataTransfer.files;
+        handleFileSelection(e.dataTransfer.files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files && fileInput.files.length > 0) {
+        handleFileSelection(fileInput.files[0]);
+      }
+    });
+
+    function handleFileSelection(file) {
+      if (!file.name.toLowerCase().endsWith('.aep')) {
+        alert('Please choose an Adobe After Effects (.aep) file.');
+        return;
+      }
+
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      dropZone.classList.add('has-file');
+      statusIcon.className = 'fa-solid fa-circle-check drop-icon';
+      dropPrompt.textContent = file.name;
+      fileMeta.textContent = `${sizeMB} MB`;
+
+      // Simulating inspect/detect banner
+      detectedBar.style.display = 'flex';
+      detectedText.textContent = `Detected: AE Project (${sizeMB} MB ready)`;
+    }
+
+    resetBtn.addEventListener('click', () => {
+      fileInput.value = '';
+      dropZone.classList.remove('has-file');
+      statusIcon.className = 'fa-solid fa-circle-arrow-up drop-icon';
+      dropPrompt.textContent = 'Drop your .aep file here or browse';
+      fileMeta.textContent = 'Supports any standard Adobe After Effects project';
+      detectedBar.style.display = 'none';
+    });
+
+    // Downgrade / Upgrade Tabs toggles
+    const downgradeBtn = document.getElementById('downgradeBtn');
+    const upgradeBtn = document.getElementById('upgradeBtn');
+
+    downgradeBtn.addEventListener('click', () => {
+      downgradeBtn.classList.add('active');
+      upgradeBtn.classList.remove('active');
+    });
+
+    upgradeBtn.addEventListener('click', () => {
+      upgradeBtn.classList.add('active');
+      downgradeBtn.classList.remove('active');
+    });
+  </script>
 </body>
 </html>

@@ -3,9 +3,8 @@ import re
 from flask import Flask, render_template, request, send_file, flash, redirect
 
 app = Flask(__name__)
-app.secret_key = "risu-secret-key-change-this"
+app.secret_key = "risuaepconverter-secret-key"
 
-# Byte targets for After Effects build signatures in RIFX
 VERSION_SIGNATURES = {
     "15.x": b"\x00\x0F",  # CC 2018
     "16.x": b"\x00\x10",  # CC 2019
@@ -17,14 +16,12 @@ VERSION_SIGNATURES = {
 }
 
 def patch_aep_bytes(data: bytes, target_ver: str) -> bytes:
-    """Replaces internal AE project build flags."""
     new_bytes = bytearray(data)
     target_tag = VERSION_SIGNATURES.get(target_ver)
     
     if not target_tag:
         return data
 
-    # Look for RIFX header and version metadata markers (Egg/sfxi chunks)
     pattern = rb"Egg\d"
     matches = [m.start() for m in re.finditer(pattern, data)]
     
@@ -42,11 +39,9 @@ def index():
         target_version = request.form.get("target_version")
 
         if not file or file.filename == "":
-            flash("No file selected.")
             return redirect(request.url)
 
         if not file.filename.lower().endswith(".aep"):
-            flash("Only .aep files are supported.")
             return redirect(request.url)
 
         file_bytes = file.read()
