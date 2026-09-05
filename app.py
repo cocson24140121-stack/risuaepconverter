@@ -3,16 +3,24 @@ import re
 from flask import Flask, render_template, request, send_file, flash, redirect
 
 app = Flask(__name__)
-app.secret_key = "risuaepconverter-secret-key"
+app.secret_key = "risuaepconverter-auth-secret"
 
+# Hex signatures for AE versions
 VERSION_SIGNATURES = {
+    "CS6": b"\x00\x0B",
+    "11.x": b"\x00\x0B",
+    "12.x": b"\x00\x0C",
+    "13.x": b"\x00\x0D",
+    "14.x": b"\x00\x0E",
     "15.x": b"\x00\x0F",  # CC 2018
     "16.x": b"\x00\x10",  # CC 2019
     "17.x": b"\x00\x11",  # 2020
     "18.x": b"\x00\x12",  # 2021
     "22.x": b"\x00\x16",  # 2022
     "23.x": b"\x00\x17",  # 2023
-    "24.x": b"\x00\x18"   # 2024
+    "24.x": b"\x00\x18",  # 2024
+    "25.x": b"\x00\x19",  # 2025
+    "30.x": b"\x00\x1E"
 }
 
 def patch_aep_bytes(data: bytes, target_ver: str) -> bytes:
